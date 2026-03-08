@@ -1,0 +1,312 @@
+openapi: 3.0.3
+info:
+  title: OCR API PoC
+  version: 1.0.0
+  description: |
+    OCR API PoC 用の OpenAPI 定義です。
+    API は OCR 処理そのものではなく、ジョブ管理と結果取得を担当します。
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Health
+  - name: Uploads
+  - name: OCR Jobs
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/uploads/presigned-url:
+    post:
+      tags:
+        - Uploads
+      summary: Create presigned upload URL
+      operationId: createPresignedUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePresignedURLRequest"
+      responses:
+        "200":
+          description: Presigned URL created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePresignedURLResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/ocr-jobs:
+    post:
+      tags:
+        - OCR Jobs
+      summary: Create OCR job
+      operationId: createOcrJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOCRJobRequest"
+      responses:
+        "200":
+          description: OCR job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateOCRJobResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/ocr-jobs/{jobId}:
+    get:
+      tags:
+        - OCR Jobs
+      summary: Get OCR job status
+      operationId: getOcrJobStatus
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: OCR job ID
+          schema:
+            type: string
+            example: job_xxxxx
+      responses:
+        "200":
+          description: OCR job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetOCRJobStatusResponse"
+        "404":
+          description: OCR job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/ocr-jobs/{jobId}/result:
+    get:
+      tags:
+        - OCR Jobs
+      summary: Get OCR job result
+      operationId: getOcrJobResult
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: OCR job ID
+          schema:
+            type: string
+            example: job_xxxxx
+      responses:
+        "200":
+          description: OCR job result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetOCRJobResultResponse"
+        "404":
+          description: OCR job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              example: ok
+
+    CreatePresignedURLRequest:
+      type: object
+      required:
+        - filename
+        - contentType
+      properties:
+        filename:
+          type: string
+          example: receipt.jpg
+        contentType:
+          type: string
+          example: image/jpeg
+
+    CreateOCRJobRequest:
+      type: object
+      required:
+        - objectKey
+      properties:
+        objectKey:
+          type: string
+          example: uploads/2026/03/07/uuid-receipt.jpg
+
+    CreatePresignedURLData:
+      type: object
+      required:
+        - objectKey
+        - uploadUrl
+        - expiresIn
+      properties:
+        objectKey:
+          type: string
+          example: uploads/2026/03/07/uuid-receipt.jpg
+        uploadUrl:
+          type: string
+          format: uri
+          example: https://storage.example.com/uploads/2026/03/07/uuid-receipt.jpg
+        expiresIn:
+          type: integer
+          example: 300
+
+    CreateOCRJobData:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          example: job_xxxxx
+        status:
+          $ref: "#/components/schemas/JobStatus"
+
+    OCRJobStatusData:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          example: job_xxxxx
+        status:
+          $ref: "#/components/schemas/JobStatus"
+
+    OCRJobResultData:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          example: job_xxxxx
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        result:
+          type: object
+          additionalProperties: true
+          example:
+            text: sample OCR result
+
+    CreatePresignedURLResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/CreatePresignedURLData"
+
+    CreateOCRJobResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/CreateOCRJobData"
+
+    GetOCRJobStatusResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/OCRJobStatusData"
+
+    GetOCRJobResultResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/OCRJobResultData"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: invalid_request
+            message:
+              type: string
+              example: filename is required
+
+    JobStatus:
+      type: string
+      enum:
+        - queued
+        - processing
+        - succeeded
+        - failed
+      example: queued
